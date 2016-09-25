@@ -20,15 +20,16 @@ SELECT * FROM TABLE_NAME;
 select search_condition from user_constraints where table_name = 'TABLE_NAME' and constraint_type = 'C';
 
 --1.e
+--Tem que excluir todas as FK que possuem 2+ COLUNA_ORIGEM
+--Also, consegue pegar todos os valores fazendo um select com a coluna e tabela referenciadas
 SELECT a.column_name as COLUNA_REFERENCIADA,
   a.table_name AS TABELA_REFERENCIADA,
-  b.column_name AS COLUNA_ORIGEM,
-  u.table_name AS TABELA_ORIGEM
+  b.column_name AS COLUNA_ORIGEM
   FROM user_constraints u
   JOIN all_cons_columns a ON a.constraint_name = u.r_constraint_name
   JOIN all_cons_columns b ON b.constraint_name = u.constraint_name
-  WHERE u.table_name='LE02CIDADE' AND u.constraint_type='R';
+  WHERE u.table_name='TABLE_NAME' AND u.constraint_type='R';
 
 --1.f
 select listagg(privilege, ',') within group( order by privilege) as PRIVILEGE, grantee
-from USER_TAB_PRIVS where table_name='LE08CANDIDATO' GROUP BY GRANTEE;
+from USER_TAB_PRIVS where table_name='TABLE_NAME' GROUP BY GRANTEE;
