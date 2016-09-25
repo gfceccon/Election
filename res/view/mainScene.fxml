@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.paint.*?>
+<?import javafx.scene.text.*?>
+
+<VBox fx:controller="view.Controller" prefHeight="400.0" prefWidth="640.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+    <AnchorPane prefHeight="29.0" prefWidth="640.0">
+        <ComboBox layoutX="205.0" layoutY="9.0" prefHeight="25.0" prefWidth="230.0" AnchorPane.bottomAnchor="5.0"
+                  AnchorPane.topAnchor="5.0"/>
+    </AnchorPane>
+    <TabPane prefHeight="406.0" prefWidth="640.0" tabClosingPolicy="UNAVAILABLE">
+        <Tab text="Data">
+            <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                <TableView layoutX="20.0" layoutY="7.0" prefHeight="286.0" prefWidth="600.0">
+                    <columns>
+                        <TableColumn prefWidth="75.0" text="C1"/>
+                        <TableColumn prefWidth="75.0" text="C2"/>
+                    </columns>
+                </TableView>
+            </AnchorPane>
+        </Tab>
+        <Tab text="Insertion">
+            <GridPane>
+                <columnConstraints>
+                    <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
+                    <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
+                </columnConstraints>
+                <rowConstraints>
+                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                    <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                </rowConstraints>
+            </GridPane>
+        </Tab>
+    </TabPane>
+    <AnchorPane prefHeight="120.0" prefWidth="640.0">
+        <TextArea layoutX="20.0" layoutY="21.0" prefHeight="42.0" prefWidth="600.0" AnchorPane.bottomAnchor="5.0"
+                  AnchorPane.topAnchor="5.0"/>
+    </AnchorPane>
+</VBox>
