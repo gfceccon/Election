@@ -1,9 +1,11 @@
 package database;
 
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Vector;
+import java.util.regex.Pattern;
 
 public class Database
 {
@@ -56,28 +58,74 @@ public class Database
     private void fillTable(SQLTable table) {
         String query = "";
         try {
+            query = "SELECT COLUMN_NAME AS NAME, DATA_TYPE AS TYPE, DATA_LENGTH AS LENGTH FROM USER_TAB_COLUMNS WHERE TABLE_NAME = '" + table.name + "'";
+            stmt = connection.createStatement();
+            rs = stmt.executeQuery(query);
+
+            Vector<SQLTableColumn> columns = new Vector<>();
+            while(rs.next())
+            {
+                SQLTableColumn column = new SQLTableColumn();
+                column.name = rs.getString("NAME");
+                columns.add(column);
+            }
+
+            stmt.close();
+
+            query = "SELECT COLS.COLUMN_NAME AS NAME, CONS.CONSTRAINT_TYPE AS TYPE, CONS.SEARCH_CONDITION AS CONDITION, " +
+                    "COLS2.TABLE_NAME AS R_TABLE_NAME, COLS2.COLUMN_NAME AS R_COLUMN_NAME FROM USER_CONSTRAINTS CONS " +
+                    "LEFT JOIN USER_CONS_COLUMNS COLS " +
+                    "ON CONS.CONSTRAINT_NAME = COLS.CONSTRAINT_NAME " +
+                    "LEFT JOIN USER_CONS_COLUMNS COLS2 " +
+                    "ON COLS2.CONSTRAINT_NAME = CONS.R_CONSTRAINT_NAME WHERE CONS.TABLE_NAME = '" + table.name + "' AND CONS.CONSTRAINT_TYPE IN ('P', 'R', 'C')";
+            stmt = connection.createStatement();
+            rs = stmt.executeQuery(query);
+
+            while(rs.next())
+            {
+                String columnName = rs.getString("NAME");
+                String type = rs.getString("TYPE");
+                SQLTableColumn column = columns.stream().filter(sqlTableColumn -> sqlTableColumn.name.equals(columnName)).findFirst().get();
+
+
+                if(type.equals("P"))
+                    column.isPrimary = true;
+
+                if(type.equals("R"))
+                {
+                    column.isForeign = true;
+                    column.refTable = rs.getString("R_TABLE_NAME");
+                    column.refColumn = rs.getString("R_COLUMN_NAME");
+                }
+
+                if(type.equals("C"))
+                {
+                    String check = rs.getString("CONDITION");
+                    if(check.contains("IN"))
+                    {
+                        column.values = new Vector<>(Arrays.asList(check.split("IN")[1].trim().replaceAll("\\(", "").replaceAll("\\)", "").replaceAll("\'", "").split(",")));
+                        column.values.forEach(String::trim);
+                    }
+                }
+            }
+
+            stmt.close();
+
 
             query = "SELECT * FROM " + table.name;
             stmt = connection.createStatement();
             rs = stmt.executeQuery(query);
 
-            ResultSetMetaData metadata = rs.getMetaData();
-
-            Vector<SQLTableColumn> columns = new Vector<>();
-            for(int i = 1; i < metadata.getColumnCount() + 1; i++)
-                columns.add(new SQLTableColumn(metadata.getColumnName(i)));
-
-            Vector<Vector<SQLValue>> data = new Vector<>();
+            Vector<SQLValue> data = new Vector<>();
             while(rs.next()) {
-                Vector<SQLValue> row = new Vector<>();
+                Vector<String> row = new Vector<>();
                 for (int i = 1; i < columns.size() + 1; i++) {
-                    row.add(new SQLValue(rs.getString(i)));
+                    row.add(rs.getString(i));
                 }
-                data.add(row);
+                data.add(new SQLValue(columns, row));
             }
 
             stmt.close();
-
 
             table.fillData(columns, data);
         } catch (SQLException ex) {

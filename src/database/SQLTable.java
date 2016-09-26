@@ -1,5 +1,6 @@
 package database;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -28,7 +29,7 @@ public class SQLTable {
     public String name;
     public TableType type;
     public Vector<SQLTableColumn> columns;
-    public Vector<Vector<SQLValue>> data;
+    public Vector<SQLValue> data;
 
     public SQLTable(String name, TableType type) {
         this.name = name;
@@ -50,7 +51,7 @@ public class SQLTable {
         return name;
     }
 
-    public void fillData(Vector<SQLTableColumn> columns, Vector<Vector<SQLValue>> data) {
+    public void fillData(Vector<SQLTableColumn> columns, Vector<SQLValue> data) {
         this.columns = columns;
         this.data = data;
     }
