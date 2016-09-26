@@ -7,15 +7,15 @@ public class SQLTableColumn
     public String name;
     public Vector<String> values;
     public boolean isPrimary;
-    public boolean isForeign;
 
+    public int refCount;
     public String refTable;
     public String refColumn;
 
     public SQLTableColumn()
     {
         isPrimary = false;
-        isForeign = false;
+        refCount = 0;
     }
 
     @Override

@@ -1,5 +1,7 @@
 package database;
 
+import javafx.scene.control.TextArea;
+
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Observable;
@@ -12,7 +14,7 @@ public class Database
     private Connection connection;
     private Statement stmt;
     private ResultSet rs;
-    private Observable error;
+    private TextArea error;
 
     private Database() { }
 
@@ -47,7 +49,7 @@ public class Database
                 stmt.close();
             }
         } catch (SQLException ex) {
-            error.notifyObservers("Erro na consulta: \"" + query + "\"");
+            error.setText("Erro na consulta: \"" + query + "\"");
         }
 
         tables.forEach(this::fillTable);
@@ -73,7 +75,8 @@ public class Database
             stmt.close();
 
             query = "SELECT COLS.COLUMN_NAME AS NAME, CONS.CONSTRAINT_TYPE AS TYPE, CONS.SEARCH_CONDITION AS CONDITION, " +
-                    "COLS2.TABLE_NAME AS R_TABLE_NAME, COLS2.COLUMN_NAME AS R_COLUMN_NAME FROM USER_CONSTRAINTS CONS " +
+                    "COLS2.TABLE_NAME AS R_TABLE_NAME, COLS2.COLUMN_NAME AS R_COLUMN_NAME " +
+                    "FROM USER_CONSTRAINTS CONS " +
                     "LEFT JOIN USER_CONS_COLUMNS COLS " +
                     "ON CONS.CONSTRAINT_NAME = COLS.CONSTRAINT_NAME " +
                     "LEFT JOIN USER_CONS_COLUMNS COLS2 " +
@@ -93,7 +96,7 @@ public class Database
 
                 if(type.equals("R"))
                 {
-                    column.isForeign = true;
+                    column.refCount++;
                     column.refTable = rs.getString("R_TABLE_NAME");
                     column.refColumn = rs.getString("R_COLUMN_NAME");
                 }
@@ -109,7 +112,22 @@ public class Database
                 }
             }
 
-            stmt.close();
+            for (SQLTableColumn column : columns)
+            {
+                if(column.refCount == 1)
+                {
+                    query = "SELECT " + column.refColumn + " FROM " + column.refTable;
+                    stmt = connection.createStatement();
+                    rs = stmt.executeQuery(query);
+
+                    column.values = new Vector<>();
+                    while (rs.next())
+                        column.values.add(rs.getString(column.refColumn));
+
+                    stmt.close();
+                }
+
+            }
 
 
             query = "SELECT * FROM " + table.name;
@@ -129,13 +147,88 @@ public class Database
 
             table.fillData(columns, data);
         } catch (SQLException ex) {
-            error.notifyObservers("Erro na consulta: \"" + query + "\"\n" + ex.getMessage());
+            error.setText("Erro na consulta: \"" + query + "\"\n" + ex.getMessage());
         }
     }
 
-    public void setErrorObserver(Observer observer)
+    public void setError(TextArea error)
     {
-        this.error = new Observable();
-        error.addObserver(observer);
+        this.error = error;
+    }
+
+    public String getDDL(String table)
+    {
+        String query = "SELECT dbms_metadata.get_ddl('TABLE', '" + table + "') AS DDL FROM DUAL";
+        String result = null;
+        try {
+            stmt = connection.createStatement();
+            rs = stmt.executeQuery(query);
+            if(rs.next()) {
+                result = rs.getString("DDL");
+            }
+            stmt.close();
+        } catch (SQLException ex) {
+            error.setText("Erro na consulta: \"" + query + "\"\n" + ex.getMessage());
+        }
+        return result;
+    }
+
+    public void insertDataSQL(SQLTable table, Vector<String> data)
+    {
+        String query = "INSERT INTO " + table;
+        try
+        {
+            stmt = connection.prepareStatement(query);
+            String cols = "";
+            boolean first = true;
+            for (SQLTableColumn col : table.columns)
+            {
+                if(!first)
+                    cols += ",";
+                first = false;
+                cols += col.getName();
+            }
+            String values = "";
+            first = true;
+            for (String s : data)
+            {
+                if(!first)
+                    values += ",";
+                first = false;
+                values += "'" + s + "'";
+            }
+            query += "(" + cols + ")";
+            query += " VALUES(" + values + ")";
+            int success = stmt.executeUpdate(query);
+
+            if(success == 0)
+                error.setText("Erro ao inserir!");
+
+            stmt.close();
+        } catch (SQLException ex)
+        {
+
+            error.setText("Erro na consulta: \"" + query + "\"\n" + ex.getMessage());
+        }
+    }
+
+    public void setUserPrivileges(TextArea area, String name)
+    {
+        String query = "SELECT listagg(privilege, ',') WITHIN GROUP( ORDER BY privilege) AS PRIVILEGE, GRANTEE " +
+                "FROM USER_TAB_PRIVS WHERE table_name='" + name + "' GROUP BY GRANTEE";
+        String result = "";
+        try {
+            stmt = connection.createStatement();
+            rs = stmt.executeQuery(query);
+            if(rs.next()) {
+                result += rs.getString("PRIVILEGE") + " - " + rs.getString("GRANTEE") + "\n";
+            }
+            stmt.close();
+        } catch (SQLException ex) {
+            error.setText("Erro na consulta: \"" + query + "\"\n" + ex.getMessage());
+        }
+        if(result.isEmpty())
+            result = "Nenhum permissao extra";
+        area.setText(result);
     }
 }

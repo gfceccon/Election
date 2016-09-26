@@ -55,13 +55,18 @@ public class Controller implements Initializable
     {
         this.database = database;
 
-        database.setErrorObserver((observable, error) -> errorArea.setText((String)error));
+        database.setError(errorArea);
 
         tables = database.getTables();
 
         tableSelector.getItems().addAll(tables);
-        tableSelector.valueProperty().addListener(observable -> setTable());
+        tableSelector.valueProperty().addListener(observable -> {setTable(); setUserPrivileges(); addOnGrid();});
         setDDL();
+    }
+
+    private void setUserPrivileges()
+    {
+        database.setUserPrivileges(usersAndPrivileges, tableSelector.getValue().name);
     }
 
     private void setTable()
@@ -82,22 +87,24 @@ public class Controller implements Initializable
 
     private void addOnGrid()
     {
+        insertionData = new Vector<>();
+        insertionPane.getChildren().clear();
         Vector<SQLTableColumn> columns = tableSelector.getValue().columns;
 
         for (int i = 0; i < columns.size(); i++)
         {
-            if(columns.elementAt(i).values.isEmpty())
+            if(columns.elementAt(i).values == null)
             {
                 TextArea ta = new TextArea();
-                insertionPane.add(new Label(columns.elementAt(i).name), i, 0);
-                insertionPane.add(ta, i, 1);
+                insertionPane.add(new Label(columns.elementAt(i).name), 0, i);
+                insertionPane.add(ta, 1, i);
                 insertionData.add(ta);
             }
             else
             {
                 ComboBox cb = populateComboBox(columns.elementAt(i).values);
-                insertionPane.add(new Label(columns.elementAt(i).name), i, 0);
-                insertionPane.add(cb, i, 1);
+                insertionPane.add(new Label(columns.elementAt(i).name), 0, i);
+                insertionPane.add(cb, 1, i);
                 insertionData.add(cb);
             }
         }
@@ -107,8 +114,9 @@ public class Controller implements Initializable
     private ComboBox<String> populateComboBox(Vector<String> data)
     {
         ComboBox<String> cb = new ComboBox<>();
+        cb.setItems(FXCollections.observableArrayList(data));
 
-        cb.getItems().addAll(data);
+        //cb.getItems().addAll(data);
 
         return cb;
     }
@@ -117,7 +125,8 @@ public class Controller implements Initializable
         String data = new String();
 
         for (int i = 0; i < tables.size(); i++) {
-            data += getDDL(tables.elementAt(i).name) + "\n";
+            if(tables.elementAt(i).type == SQLTable.TableType.USER)
+                data += database.getDDL(tables.elementAt(i).name) + "\n";
         }
 
         ddlTextArea.setText(data);
@@ -155,7 +164,7 @@ public class Controller implements Initializable
             }
 
         }
-        Database.insertDataSQL(tableSelector.getValue(), data);
+        database.insertDataSQL(tableSelector.getValue(), data);
     }
 
 
